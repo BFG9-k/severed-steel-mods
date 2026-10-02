@@ -4,7 +4,7 @@ local CLICK_HANDLER = BUTTON_CLASS .. ":BndEvt__Button_45_K2Node_ComponentBoundE
 local PICKER_CLASS = "/Game/UI/MainMenuV3/Difficulty/WBP_Difficulty.WBP_Difficulty_C"
 local PICKER_ASSET = "/Game/UI/MainMenuV3/Difficulty/WBP_Difficulty"
 
-local SETTINGS_FILE = "Mods/RogueDifficulty/settings.txt"
+local SETTINGS_FILE = "Mods/rogue-difficulty/settings.txt"
 
 local DIFFICULTY_NAMES =
 {
