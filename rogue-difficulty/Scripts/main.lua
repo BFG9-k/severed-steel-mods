@@ -135,7 +135,14 @@ local function branch_containing( a, b )
     end
 end
 
-local screens = { }
+local current = nil
+
+local function screen_exists( screen )
+    for _, w in ipairs( FindAllOf( "WBP_RogueMain_C" ) or { } ) do
+        if w:GetAddress( ) == screen.address then return true end
+    end
+    return false
+end
 
 local function refresh_button( screen )
     set_button_texts( screen.button, chosen_name( ), "DIFFICULTY" )
@@ -229,19 +236,9 @@ local function open_panel( screen )
     screen.button:SetToggled( true )
 end
 
-local function has_button( rogue )
-    local address = rogue:GetAddress( )
-    for _, screen in ipairs( screens ) do
-        if screen.button:IsValid( ) and screen.rogue:IsValid( ) and screen.rogue:GetAddress( ) == address then
-            return true
-        end
-    end
-    return false
-end
-
 local function add_button( rogue )
     if not is_real_object( rogue ) then return true end
-    if has_button( rogue ) then return true end
+    if current and current.address == rogue:GetAddress( ) then return true end
     local ref = rogue.WorkshopBtn
     if not ref or not ref:IsValid( ) then return false end
 
@@ -259,10 +256,7 @@ local function add_button( rogue )
     end
     btn:SetVisibility( 0 )
 
-    for i = #screens, 1, -1 do
-        if not screens[ i ].rogue:IsValid( ) then table.remove( screens, i ) end
-    end
-    table.insert( screens, { rogue = rogue, ref = ref, button = btn } )
+    current = { address = rogue:GetAddress( ), rogue = rogue, ref = ref, button = btn, button_address = btn:GetAddress( ) }
     return true
 end
 
@@ -276,6 +270,7 @@ end
 
 when_loaded( SCREEN_CLASS, function( )
     NotifyOnNewObject( SCREEN_CLASS, function( rogue )
+        current = nil
         ExecuteWithDelay( 20, function( )
             ExecuteInGameThread( function( ) try_add_button( rogue, 40 ) end )
         end )
@@ -285,18 +280,20 @@ end )
 
 when_loaded( BUTTON_CLASS, function( )
     RegisterHook( CLICK_HANDLER, function( self )
+        local screen = current
+        if not screen then return end
         local address = self:get( ):GetAddress( )
-        for _, screen in ipairs( screens ) do
-            if screen.button:IsValid( ) and screen.button:GetAddress( ) == address then
-                if screen.open then close_panel( screen ) else open_panel( screen ) end
-                return
-            end
+        local target_button = address == screen.button_address
+        if not target_button and not screen.open then return end
+        if not screen_exists( screen ) then
+            current = nil
+            return
         end
-        for _, screen in ipairs( screens ) do
-            if screen.open then
-                local value = screen.picker_buttons[ address ]
-                if value ~= nil then on_picked( screen, value ) else close_panel( screen ) end
-            end
+        if target_button then
+            if screen.open then close_panel( screen ) else open_panel( screen ) end
+        else
+            local value = screen.picker_buttons[ address ]
+            if value ~= nil then on_picked( screen, value ) else close_panel( screen ) end
         end
     end )
 end )
